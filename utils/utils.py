@@ -5,6 +5,23 @@ from scipy import stats
 metrics = ['accuracy', 'coverage', 'ipc_improvement', 'mpki_reduction', 'dram_bw_reduction']
 amean_metrics = ['accuracy', 'coverage', 'dram_bw_reduction']
 
+gap = [
+    'cc', 'pr', 'sssp', 'bfs', 'tc'
+]
+spec = [
+    'astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix',
+    'gcc', 'GemsFDTD', 'hmmer', 'lbm', 'leslie3d',
+    'libquantum', 'mcf', 'milc', 'omnetpp', 'soplex',
+    'sphinx3', 'tonto', 'wrf', 'xalancbmk'
+]
+cloudsuite = [
+    'cassandra_core0', 'cassandra_core1', 'cassandra_core2', 'cassandra_core3',
+    'classification_core0', 'classification_core1', 'classification_core2', 'classification_core3',
+    'cloud9_core0', 'cloud9_core1', 'cloud9_core2', 'cloud9_core3',
+    'nutch_core0', 'nutch_core1', 'nutch_core2', 'nutch_core3',
+    'streaming_core0', 'streaming_core1', 'streaming_core2', 'streaming_core3'
+]
+
 def read_weights_file(path):
     weights = pd.read_csv(path, sep=' ', header=None)
     weights.columns = ['full_trace', 'weight']
@@ -30,8 +47,18 @@ def read_weights_file(path):
     
     return weights
 
+
+def read_degree_sweep_file(path):
+    df = pd.read_csv(path)
+    df.columns = df.columns.str.replace('scooby', 'pythia')
+    df.columns = df.columns.str.replace('spp_dev2', 'spp')
+    df.columns = df.columns.str.replace('bop', 'bo')
+    return df
+
+
 def read_data_file(path):
     df = pd.read_csv(path)
+    df.simpoint = df.simpoint.fillna('default')
     df.prefetcher = df.prefetcher.replace({
         'scooby': 'pythia',
         'spp_dev2': 'spp',
@@ -56,6 +83,9 @@ def rank_prefetchers(df, metric, count=None):
     """Return the <count> best prefetchers, in order of maximum <metric>.
     """
     pf_avgs = []
+    # Filter out opportunity prefetchers from the ranking.
+    df = df[~df.prefetcher.str.startswith('pc_combined') & ~df.prefetcher.str.contains('phase_combined')]
+    
     for i, (pf, df_pf) in enumerate(df.groupby('prefetcher')):
         avg = mean(df_pf[metric], metric)
         pf_avgs.append((avg, pf))
