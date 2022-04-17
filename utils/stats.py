@@ -18,6 +18,12 @@ def _process_prefetcher(stats, df, weights, tr, pf):
     stats['prefetcher'] = np.append(stats['prefetcher'], pf)
     stats['simpoint'] = np.append(stats['simpoint'], 'weighted')
     
+    if len(data) == 0:
+        #print(f'[DEBUG] {pf} {tr} not found')
+        for metric in utils.metrics:
+            stats[f'{metric}'] = np.append(stats[f'{metric}'], np.nan)
+        return
+    
     for metric in utils.metrics:
         target = data[metric].item() if len(data) <= 1 else utils.mean(data[metric], metric, weights=weights)
         stats[f'{metric}'] = np.append(stats[f'{metric}'], target)
@@ -26,6 +32,10 @@ def _process_phase_combined(stats, df, weights, tr):
     wt = weights[(weights.trace == tr)]
     data = df[(df.trace == tr)]
     
+    # Filter out opportunity prefetchers
+    data = data[~(data.prefetcher.str.contains('pc_'))]
+    
+    # DEBUG
     stats['trace'] = np.append(stats['trace'], tr)
     stats['prefetcher'] = np.append(stats['prefetcher'], 'phase_combined')
     stats['simpoint'] = np.append(stats['simpoint'], 'weighted')            
@@ -34,7 +44,12 @@ def _process_phase_combined(stats, df, weights, tr):
         best_metrics = best_metrics.merge(wt, on='simpoint')
         best_metrics['weight'] = best_metrics['weight'] / best_metrics['weight'].sum()
 
-        target = utils.mean(best_metrics[metric], metric, weights=best_metrics['weight'])
+        try:
+            target = utils.mean(best_metrics[metric], metric, weights=best_metrics['weight'])
+        except:
+            #print(f'[DEBUG] Could not compute phase_combined {tr} {metric}')
+            target = np.nan
+            
         stats[f'{metric}'] = np.append(stats[f'{metric}'], target)
     
 def get_weighted_statistics(df, weights, add_phase_combined=True):

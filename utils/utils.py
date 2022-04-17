@@ -64,6 +64,10 @@ def read_data_file(path):
         'spp_dev2': 'spp',
         'bop': 'bo'
     }, regex=True)
+    
+    # Fix prefetcher ordering
+    df.prefetcher = df.prefetcher.apply(lambda c : '_'.join(sorted(c.split('_'))))
+    
     return df
 
 def mean(values, metric, weights=None):
