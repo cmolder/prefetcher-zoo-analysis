@@ -10,16 +10,16 @@ def get_longest_simpoints(weights):
 
 def _process_prefetcher(stats, df, weights, tr, pf):
     wt = weights[weights.trace == tr][['simpoint', 'weight']]
-    data = df[(df.trace == tr) & (df.prefetcher == pf)]
+    data = df[(df.trace == tr) & (df.all_pref == pf)]
     data = data.merge(wt, on='simpoint')
     weights = data['weight'] / sum(data['weight'])
 
     stats['trace'] = np.append(stats['trace'], tr)
-    stats['prefetcher'] = np.append(stats['prefetcher'], pf)
+    stats['all_pref'].append(pf)
     stats['simpoint'] = np.append(stats['simpoint'], 'weighted')
     
     if len(data) == 0:
-        #print(f'[DEBUG] {pf} {tr} not found')
+        print(f'[DEBUG] {pf} {tr} not found')
         for metric in utils.metrics:
             stats[f'{metric}'] = np.append(stats[f'{metric}'], np.nan)
         return
@@ -27,17 +27,18 @@ def _process_prefetcher(stats, df, weights, tr, pf):
     for metric in utils.metrics:
         target = data[metric].item() if len(data) <= 1 else utils.mean(data[metric], metric, weights=weights)
         stats[f'{metric}'] = np.append(stats[f'{metric}'], target)
+        #print('[DEBUG]', pf, metric, data[metric].to_list(), weights.to_list(), stats[f'{metric}'][-1])
         
 def _process_phase_combined(stats, df, weights, tr):
     wt = weights[(weights.trace == tr)]
     data = df[(df.trace == tr)]
     
     # Filter out opportunity prefetchers
-    data = data[~(data.prefetcher.str.contains('pc_'))]
+    data = data[~(data.LLC_pref.str.contains('pc_') | data.L2C_pref.str.contains('pc_') | data.L1D_pref.str.contains('pc_'))]
     
     # DEBUG
     stats['trace'] = np.append(stats['trace'], tr)
-    stats['prefetcher'] = np.append(stats['prefetcher'], 'phase_combined')
+    stats['all_pref'].append(('no', 'no', 'phase_comb'))
     stats['simpoint'] = np.append(stats['simpoint'], 'weighted')            
     for metric in utils.metrics:
         best_metrics = data.groupby('simpoint')[metric].max().to_frame()
@@ -55,17 +56,17 @@ def _process_phase_combined(stats, df, weights, tr):
 def get_weighted_statistics(df, weights, add_phase_combined=True):
     stats = {
         'trace': np.array([]),
-        'prefetcher': np.array([]),
+        'all_pref': [],
         'simpoint': np.array([]),
-        'accuracy': np.array([]),
-        'coverage': np.array([]),
+        'LLC_accuracy': np.array([]),
+        'LLC_coverage': np.array([]),
         'ipc_improvement': np.array([]),
-        'mpki_reduction': np.array([]),
+        'LLC_mpki_reduction': np.array([]),
         'dram_bw_reduction': np.array([])
     }
     
     for tr in df.trace.unique():
-        for pf in df.prefetcher.unique():
+        for pf in df.all_pref.unique():
             _process_prefetcher(stats, df, weights, tr, pf)
                 
         if add_phase_combined:
