@@ -36,9 +36,8 @@ def _process_phase_combined(stats, df, weights, tr):
     # Filter out opportunity prefetchers
     data = data[~(data.LLC_pref.str.contains('pc_') | data.L2C_pref.str.contains('pc_') | data.L1D_pref.str.contains('pc_'))]
     
-    # DEBUG
     stats['trace'] = np.append(stats['trace'], tr)
-    stats['all_pref'].append(('no', 'no', 'phase_comb'))
+    stats['all_pref'].append(('no', 'no', 'offline_phase'))
     stats['simpoint'] = np.append(stats['simpoint'], 'weighted')            
     for metric in utils.metrics:
         best_metrics = data.groupby('simpoint')[metric].max().to_frame()

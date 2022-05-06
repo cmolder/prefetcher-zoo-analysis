@@ -96,7 +96,7 @@ def rank_prefetchers(df, metric, count=None):
     # Filter out opportunity prefetchers from the ranking.
     
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
-        df = df[~df[col].str.startswith('pc_comb') & ~df[col].str.contains('phase_comb')]
+        df = df[~df[col].str.contains('pc_') & ~df[col].str.contains('phase_')]
     
     for i, (pf, df_pf) in enumerate(df.groupby(['L1D_pref', 'L2C_pref', 'LLC_pref'])):
         avg = mean(df_pf[metric], metric)
