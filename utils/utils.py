@@ -107,3 +107,15 @@ def rank_prefetchers(df, metric, count=None):
         best = best[:count]
     
     return [pf for _, pf in best]
+
+def rank_single_prefetchers(df, metric, count=None):
+    pf_avgs = []
+    # Filter out opportunity prefetchers from the ranking.
+    
+    for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
+        df = df[~df[col].str.contains('pc_') & ~df[col].str.contains('phase_')]
+        df[col] = df[col].str.replace('spp_dev2', 'sppdev2')
+        df = df[~df[col].str.contains('_')]
+        df[col] = df[col].str.replace('sppdev2', 'spp_dev2')
+        
+    return rank_prefetchers(df, metric, count=count)
